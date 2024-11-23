@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shiny Rotating Planet</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: radial-gradient(circle, #190033, #000000);
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+      // Scene Setup
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // Main Sphere Particles
+      const particlesGeometry = new THREE.BufferGeometry();
+      const particleCount = 5000;
+
+      const positions = [];
+      const colors = [];
+      const color = new THREE.Color();
+
+      for (let i = 0; i < particleCount; i++) {
+        const radius = 5;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+
+        const x = radius * Math.sin(phi) * Math.cos(theta);
+        const y = radius * Math.sin(phi) * Math.sin(theta);
+        const z = radius * Math.cos(phi);
+
+        positions.push(x, y, z);
+
+        color.setHSL(Math.random(), 0.8, 0.6);
+        colors.push(color.r, color.g, color.b);
+      }
+
+      particlesGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(positions, 3)
+      );
+      particlesGeometry.setAttribute(
+        "color",
+        new THREE.Float32BufferAttribute(colors, 3)
+      );
+
+      const particlesMaterial = new THREE.PointsMaterial({
+        size: 0.1,
+        vertexColors: true,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+
+      const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+      scene.add(particles);
+
+      // Orbit (Thick and Shiny)
+      const orbitGeometry = new THREE.RingGeometry(6, 6.5, 128);
+      const orbitMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.6,
+      });
+
+      const orbitMesh = new THREE.Mesh(orbitGeometry, orbitMaterial);
+      orbitMesh.rotation.x = Math.PI / 2; // Make it horizontal
+      scene.add(orbitMesh);
+
+      // Nebula Effect (Background Particles)
+      const nebulaGeometry = new THREE.BufferGeometry();
+      const nebulaCount = 1000;
+
+      const nebulaPositions = [];
+      for (let i = 0; i < nebulaCount; i++) {
+        nebulaPositions.push(
+          (Math.random() - 0.5) * 100,
+          (Math.random() - 0.5) * 100,
+          (Math.random() - 0.5) * 100
+        );
+      }
+
+      nebulaGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(nebulaPositions, 3)
+      );
+
+      const nebulaMaterial = new THREE.PointsMaterial({
+        size: 0.5,
+        color: 0x662d91,
+        transparent: true,
+        opacity: 0.5,
+        blending: THREE.AdditiveBlending,
+      });
+
+      const nebulaParticles = new THREE.Points(nebulaGeometry, nebulaMaterial);
+      scene.add(nebulaParticles);
+
+      // Shooting Stars
+      const shootingStars = [];
+      function createShootingStar() {
+        const geometry = new THREE.SphereGeometry(0.05, 8, 8);
+        const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const star = new THREE.Mesh(geometry, material);
+        star.position.set(
+          Math.random() * 50 - 25,
+          Math.random() * 50 - 25,
+          Math.random() * -50
+        );
+        scene.add(star);
+        shootingStars.push(star);
+      }
+
+      setInterval(createShootingStar, 1000);
+
+      // Camera Position
+      camera.position.z = 15;
+
+      // Mouse Interaction
+      const mouse = { x: 0, y: 0 };
+      window.addEventListener("mousemove", (event) => {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      });
+
+      // Animation
+      function animate() {
+        requestAnimationFrame(animate);
+
+        particles.rotation.y += 0.001;
+        orbitMesh.rotation.z += 0.002;
+
+        // Move shooting stars
+        shootingStars.forEach((star, index) => {
+          star.position.z += 0.5;
+          if (star.position.z > 15) {
+            scene.remove(star);
+            shootingStars.splice(index, 1);
+          }
+        });
+
+        // Camera Rotation with Mouse
+        camera.rotation.x = mouse.y * 0.1;
+        camera.rotation.y = mouse.x * 0.1;
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      // Handle Resizing
+      window.addEventListener("resize", () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+      });
+    </script>
+  </body>
+</html>
